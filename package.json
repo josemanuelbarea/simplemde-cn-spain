@@ -1,6 +1,6 @@
 {
-  "name": "simplemde",
-  "version": "1.11.2",
+  "name": "simplemde-cn-spain",
+  "version": "1.12.0",
   "description": "A simple, beautiful, and embeddable JavaScript Markdown editor. Features autosaving and spell checking.",
   "keywords": [
     "embeddable",
@@ -9,21 +9,17 @@
     "javascript",
     "wysiwyg"
   ],
-  "homepage": "https://github.com/NextStepWebs/simplemde-markdown-editor",
+  "homepage": "https://github.com/condenast-spain/simplemde-cn-spain",
   "main": "./src/js/simplemde.js",
   "license": "MIT",
-  "company": "Next Step Webs, Inc.",
-  "author": {
-    "name": "Wes Cossick",
-    "url": "http://www.WesCossick.com"
-  },
+  "company": "Condé Nast Spain",
   "bugs": {
-    "url": "https://github.com/NextStepWebs/simplemde-markdown-editor/issues"
+    "url": "https://github.com/condenast-spain/simplemde-cn-spain/issues"
   },
   "dependencies": {
     "codemirror": "*",
     "codemirror-spell-checker": "*",
-    "marked": "*"
+    "marked-cn-spain": "^0.4.1"
   },
   "devDependencies": {
     "browserify": "*",
@@ -43,6 +39,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/NextStepWebs/simplemde-markdown-editor"
+    "url": "https://github.com/condenast-spain/simplemde-cn-spain"
   }
 }
