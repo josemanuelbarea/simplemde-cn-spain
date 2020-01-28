@@ -1,5 +1,5 @@
 /**
- * simplemde-cn-spain v1.12.0
+ * simplemde-cn-spain v1.12.1
  * Copyright Condé Nast Spain
  * @link https://github.com/condenast-spain/simplemde-cn-spain
  * @license MIT
@@ -16998,7 +16998,7 @@ function drawLink(editor) {
 			return false;
 		}
 	}
-	_replaceSelection(cm, stat.link, options.insertTexts.link, url);
+	_replaceSelection(cm, stat.link, options.insertTexts.link, url, true);
 }
 
 /**
@@ -17182,7 +17182,7 @@ function togglePreview(editor) {
 		toggleSideBySide(editor);
 }
 
-function _replaceSelection(cm, active, startEnd, url) {
+function _replaceSelection(cm, active, startEnd, url, toggle) {
 	if(/editor-preview-active/.test(cm.getWrapperElement().lastChild.className))
 		return;
 
@@ -17191,17 +17191,29 @@ function _replaceSelection(cm, active, startEnd, url) {
 	var end = startEnd[1];
 	var startPoint = cm.getCursor("start");
 	var endPoint = cm.getCursor("end");
+	var to = {};
+
 	if(url) {
 		end = end.replace("#url#", url);
 	}
+
 	if(active) {
 		text = cm.getLine(startPoint.line);
 		start = text.slice(0, startPoint.ch);
 		end = text.slice(startPoint.ch);
+
+		if(toggle != undefined && toggle) {
+			start = start.replace(/\[/, "");
+			end = end.replace(/\]\(http:\/\/\)/, "");
+			to = {
+				line: startPoint.line,
+				ch: 99999999999999,
+			};
+		}
 		cm.replaceRange(start + end, {
 			line: startPoint.line,
 			ch: 0
-		});
+		}, to);
 	} else {
 		text = cm.getSelection();
 		cm.replaceSelection(start + text + end);
