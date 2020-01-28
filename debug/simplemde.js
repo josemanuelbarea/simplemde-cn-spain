@@ -1,5 +1,5 @@
 /**
- * simplemde-cn-spain v1.12.1
+ * simplemde-cn-spain v1.12.2
  * Copyright Condé Nast Spain
  * @link https://github.com/condenast-spain/simplemde-cn-spain
  * @license MIT
