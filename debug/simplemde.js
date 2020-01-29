@@ -17203,7 +17203,7 @@ function _replaceSelection(cm, active, startEnd, url, toggle) {
 		end = text.slice(startPoint.ch);
 
 		if(toggle != undefined && toggle) {
-			start = start.replace(/\[/, "");
+			start = start.replace(/((.)*)(\[)((.)*)$/, "$1$4");
 			end = end.replace(/\]\(http:\/\/\)/, "");
 			to = {
 				line: startPoint.line,
