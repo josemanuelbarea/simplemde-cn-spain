@@ -1,5 +1,5 @@
 /**
- * simplemde-cn-spain v1.12.0
+ * simplemde-cn-spain v1.12.2
  * Copyright Condé Nast Spain
  * @link https://github.com/condenast-spain/simplemde-cn-spain
  * @license MIT
@@ -16510,9 +16510,7 @@ function getState(cm, pos) {
 	pos = pos || cm.getCursor("start");
 	var stat = cm.getTokenAt(pos);
 	if(!stat.type) return {};
-
 	var types = stat.type.split(" ");
-
 	var ret = {},
 		data, text;
 	for(var i = 0; i < types.length; i++) {
@@ -16541,9 +16539,11 @@ function getState(cm, pos) {
 		} else if(data === "comment") {
 			ret.code = true;
 		} else if(data === "link") {
-			ret.link = true;
-		} else if(data === "tag") {
-			ret.image = true;
+			if(stat.type.search("image-alt-text") === -1) {
+				ret.link = true;
+			} else {
+				ret.image = true;
+			}
 		} else if(data.match(/^header(\-[1-6])?$/)) {
 			ret[data.replace("header", "heading")] = true;
 		}
@@ -17191,17 +17191,56 @@ function _replaceSelection(cm, active, startEnd, url) {
 	var end = startEnd[1];
 	var startPoint = cm.getCursor("start");
 	var endPoint = cm.getCursor("end");
+	var isLink, isImage = false;
+	var to = null;
+
+	if(cm.getTokenAt(startPoint).type && cm.getTokenAt(startPoint).type.search("image-alt-text") === -1) {
+		isLink = true;
+	} else {
+		isImage = true;
+	}
+
 	if(url) {
 		end = end.replace("#url#", url);
 	}
+
 	if(active) {
 		text = cm.getLine(startPoint.line);
 		start = text.slice(0, startPoint.ch);
 		end = text.slice(startPoint.ch);
+
+		if(isLink) {
+			start = start.replace(/(\[)(?!.*(\[))/, "");
+			end = end.replace(/\]\((\s*)[\S]*(\s*)\)/, "");
+
+			startPoint.ch -= 1;
+			if(startPoint !== endPoint) {
+				endPoint.ch -= 1;
+			}
+			to = {
+				line: startPoint.line,
+				ch: 99999999999999
+			};
+
+		} else if(isImage) {
+			start = start.replace(/(!\[)(?!.*(!\[))/, "");
+			end = end.replace(/\]\((\s*)[\S]*(\s*)\)/, "");
+
+			startPoint.ch -= 2;
+			if(startPoint !== endPoint) {
+				endPoint.ch -= 2;
+			}
+			to = {
+				line: startPoint.line,
+				ch: 99999999999999
+			};
+		}
+
 		cm.replaceRange(start + end, {
 			line: startPoint.line,
 			ch: 0
-		});
+		}, to);
+
 	} else {
 		text = cm.getSelection();
 		cm.replaceSelection(start + text + end);
@@ -17648,7 +17687,7 @@ var toolbarBuiltInButtons = {
 
 var insertTexts = {
 	link: ["[", "](#url#)"],
-	image: ["![](", "#url#)"],
+	image: ["![", "](#url#)"],
 	table: ["", "\n\n| Column 1 | Column 2 | Column 3 |\n| -------- | -------- | -------- |\n| Text     | Text     | Text     |\n\n"],
 	horizontalRule: ["", "\n\n-----\n\n"],
 	span: ["%%", "%% {}"],
@@ -18137,6 +18176,7 @@ SimpleMDE.prototype.createToolbar = function(items) {
 
 	var cm = this.codemirror;
 	cm.on("cursorActivity", function() {
+
 		var stat = getState(cm);
 
 		for(var key in toolbarData) {
