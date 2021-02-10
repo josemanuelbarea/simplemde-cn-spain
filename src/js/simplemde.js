@@ -625,7 +625,7 @@ function drawLink(editor) {
 	var cm = editor.codemirror;
 	var stat = getState(cm);
 	var options = editor.options;
-	var url = "http://";
+	var url = "https://";
 	if(options.promptURLs) {
 		url = prompt(options.promptTexts.link);
 		if(!url) {
@@ -642,7 +642,7 @@ function drawImage(editor) {
 	var cm = editor.codemirror;
 	var stat = getState(cm);
 	var options = editor.options;
-	var url = "http://";
+	var url = "https://";
 	if(options.promptURLs) {
 		url = prompt(options.promptTexts.image);
 		if(!url) {
@@ -1613,7 +1613,7 @@ function isLocalStorageAvailable() {
 		try {
 			localStorage.setItem("smde_localStorage", 1);
 			localStorage.removeItem("smde_localStorage");
-		} catch(e) {
+		} catch (e) {
 			return false;
 		}
 	} else {
