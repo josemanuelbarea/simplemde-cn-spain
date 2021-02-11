@@ -1,5 +1,5 @@
 /**
- * simplemde-cn-spain v1.12.3
+ * simplemde-cn-spain v1.12.4
  * Copyright Condé Nast Spain
  * @link https://github.com/condenast-spain/simplemde-cn-spain
  * @license MIT
@@ -187,13 +187,11 @@ module.exports = CodeMirrorSpellChecker;
       cm.on("blur", onBlur);
       cm.on("change", onChange);
       cm.on("swapDoc", onChange);
-      CodeMirror.on(cm.getInputField(), "compositionupdate", cm.state.placeholderCompose = function() { onComposition(cm) })
       onChange(cm);
     } else if (!val && prev) {
       cm.off("blur", onBlur);
       cm.off("change", onChange);
       cm.off("swapDoc", onChange);
-      CodeMirror.off(cm.getInputField(), "compositionupdate", cm.state.placeholderCompose)
       clearPlaceholder(cm);
       var wrapper = cm.getWrapperElement();
       wrapper.className = wrapper.className.replace(" CodeMirror-empty", "");
@@ -218,18 +216,6 @@ module.exports = CodeMirrorSpellChecker;
     if (typeof placeHolder == "string") placeHolder = document.createTextNode(placeHolder)
     elt.appendChild(placeHolder)
     cm.display.lineSpace.insertBefore(elt, cm.display.lineSpace.firstChild);
-  }
-
-  function onComposition(cm) {
-    setTimeout(function() {
-      var empty = false, input = cm.getInputField()
-      if (input.nodeName == "TEXTAREA")
-        empty = !input.value
-      else if (cm.lineCount() == 1)
-        empty = !/[^\u200b]/.test(input.querySelector(".CodeMirror-line").textContent)
-      if (empty) setPlaceholder(cm)
-      else clearPlaceholder(cm)
-    }, 20)
   }
 
   function onBlur(cm) {
@@ -771,7 +757,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
   }
 
   // Number of pixels added to scroller and sizer to hide scrollbar
-  var scrollerGap = 50;
+  var scrollerGap = 30;
 
   // Returned or thrown by various protocols to signal 'I'm not
   // handling this'.
@@ -1768,7 +1754,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
       var prop = lineClass[1] ? "bgClass" : "textClass";
       if (output[prop] == null)
         { output[prop] = lineClass[2]; }
-      else if (!(new RegExp("(?:^|\\s)" + lineClass[2] + "(?:$|\\s)")).test(output[prop]))
+      else if (!(new RegExp("(?:^|\s)" + lineClass[2] + "(?:$|\s)")).test(output[prop]))
         { output[prop] += " " + lineClass[2]; }
     } }
     return type
@@ -2408,7 +2394,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
       }
     }
     builder.trailingSpace = displayText.charCodeAt(text.length - 1) == 32;
-    if (style || startStyle || endStyle || mustWrap || css || attributes) {
+    if (style || startStyle || endStyle || mustWrap || css) {
       var fullStyle = style || "";
       if (startStyle) { fullStyle += startStyle; }
       if (endStyle) { fullStyle += endStyle; }
@@ -3527,7 +3513,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
     var x, y, space = display.lineSpace.getBoundingClientRect();
     // Fails unpredictably on IE[67] when mouse is dragged around quickly.
     try { x = e.clientX - space.left; y = e.clientY - space.top; }
-    catch (e$1) { return null }
+    catch (e) { return null }
     var coords = coordsChar(cm, x, y), line;
     if (forRect && coords.xRel > 0 && (line = getLine(cm.doc, coords.line).text).length == coords.ch) {
       var colDiff = countColumn(line, line.length, cm.options.tabSize) - line.length;
@@ -3843,10 +3829,8 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
     var on = true;
     display.cursorDiv.style.visibility = "";
     if (cm.options.cursorBlinkRate > 0)
-      { display.blinker = setInterval(function () {
-        if (!cm.hasFocus()) { onBlur(cm); }
-        display.cursorDiv.style.visibility = (on = !on) ? "" : "hidden";
-      }, cm.options.cursorBlinkRate); }
+      { display.blinker = setInterval(function () { return display.cursorDiv.style.visibility = (on = !on) ? "" : "hidden"; },
+        cm.options.cursorBlinkRate); }
     else if (cm.options.cursorBlinkRate < 0)
       { display.cursorDiv.style.visibility = "hidden"; }
   }
@@ -4046,15 +4030,14 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
       if (newTop != screentop) { result.scrollTop = newTop; }
     }
 
-    var gutterSpace = cm.options.fixedGutter ? 0 : display.gutters.offsetWidth;
-    var screenleft = cm.curOp && cm.curOp.scrollLeft != null ? cm.curOp.scrollLeft : display.scroller.scrollLeft - gutterSpace;
-    var screenw = displayWidth(cm) - display.gutters.offsetWidth;
+    var screenleft = cm.curOp && cm.curOp.scrollLeft != null ? cm.curOp.scrollLeft : display.scroller.scrollLeft;
+    var screenw = displayWidth(cm) - (cm.options.fixedGutter ? display.gutters.offsetWidth : 0);
     var tooWide = rect.right - rect.left > screenw;
     if (tooWide) { rect.right = rect.left + screenw; }
     if (rect.left < 10)
       { result.scrollLeft = 0; }
     else if (rect.left < screenleft)
-      { result.scrollLeft = Math.max(0, rect.left + gutterSpace - (tooWide ? 0 : 10)); }
+      { result.scrollLeft = Math.max(0, rect.left - (tooWide ? 0 : 10)); }
     else if (rect.right > screenw + screenleft - 3)
       { result.scrollLeft = rect.right + (tooWide ? 0 : 10) - screenw; }
     return result
@@ -4620,8 +4603,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
   function restoreSelection(snapshot) {
     if (!snapshot || !snapshot.activeElt || snapshot.activeElt == activeElt()) { return }
     snapshot.activeElt.focus();
-    if (!/^(INPUT|TEXTAREA)$/.test(snapshot.activeElt.nodeName) &&
-        snapshot.anchorNode && contains(document.body, snapshot.anchorNode) && contains(document.body, snapshot.focusNode)) {
+    if (snapshot.anchorNode && contains(document.body, snapshot.anchorNode) && contains(document.body, snapshot.focusNode)) {
       var sel = window.getSelection(), range = document.createRange();
       range.setEnd(snapshot.anchorNode, snapshot.anchorOffset);
       range.collapse(false);
@@ -7115,7 +7097,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
           cm.display.input.focus();
         }
       }
-      catch(e$1){}
+      catch(e){}
     }
   }
 
@@ -7211,7 +7193,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
     46: "Delete", 59: ";", 61: "=", 91: "Mod", 92: "Mod", 93: "Mod",
     106: "*", 107: "=", 109: "-", 110: ".", 111: "/", 145: "ScrollLock",
     173: "-", 186: ";", 187: "=", 188: ",", 189: "-", 190: ".", 191: "/", 192: "`", 219: "[", 220: "\\",
-    221: "]", 222: "'", 224: "Mod", 63232: "Up", 63233: "Down", 63234: "Left", 63235: "Right", 63272: "Delete",
+    221: "]", 222: "'", 63232: "Up", 63233: "Down", 63234: "Left", 63235: "Right", 63272: "Delete",
     63273: "Home", 63275: "End", 63276: "PageUp", 63277: "PageDown", 63302: "Insert"
   };
 
@@ -7346,7 +7328,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
     var base = name;
     if (event.altKey && base != "Alt") { name = "Alt-" + name; }
     if ((flipCtrlCmd ? event.metaKey : event.ctrlKey) && base != "Ctrl") { name = "Ctrl-" + name; }
-    if ((flipCtrlCmd ? event.ctrlKey : event.metaKey) && base != "Mod") { name = "Cmd-" + name; }
+    if ((flipCtrlCmd ? event.ctrlKey : event.metaKey) && base != "Cmd") { name = "Cmd-" + name; }
     if (!noShift && event.shiftKey && base != "Shift") { name = "Shift-" + name; }
     return name
   }
@@ -7572,7 +7554,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
     goGroupRight: function (cm) { return cm.moveH(1, "group"); },
     goGroupLeft: function (cm) { return cm.moveH(-1, "group"); },
     goWordRight: function (cm) { return cm.moveH(1, "word"); },
-    delCharBefore: function (cm) { return cm.deleteH(-1, "codepoint"); },
+    delCharBefore: function (cm) { return cm.deleteH(-1, "char"); },
     delCharAfter: function (cm) { return cm.deleteH(1, "char"); },
     delWordBefore: function (cm) { return cm.deleteH(-1, "word"); },
     delWordAfter: function (cm) { return cm.deleteH(1, "word"); },
@@ -7761,7 +7743,6 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
   var lastStoppedKey = null;
   function onKeyDown(e) {
     var cm = this;
-    if (e.target && e.target != cm.display.input.getField()) { return }
     cm.curOp.focus = activeElt();
     if (signalDOMEvent(cm, e)) { return }
     // IE does strange things with escape.
@@ -7805,7 +7786,6 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
 
   function onKeyPress(e) {
     var cm = this;
-    if (e.target && e.target != cm.display.input.getField()) { return }
     if (eventInWidget(cm.display, e) || signalDOMEvent(cm, e) || e.ctrlKey && !e.altKey || mac && e.metaKey) { return }
     var keyCode = e.keyCode, charCode = e.charCode;
     if (presto && keyCode == lastStoppedKey) {lastStoppedKey = null; e_preventDefault(e); return}
@@ -7954,8 +7934,8 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
         if (!behavior.addNew)
           { extendSelection(cm.doc, pos, null, null, behavior.extend); }
         // Work around unexplainable focus problem in IE9 (#2127) and Chrome (#3081)
-        if ((webkit && !safari) || ie && ie_version == 9)
-          { setTimeout(function () {display.wrapper.ownerDocument.body.focus({preventScroll: true}); display.input.focus();}, 20); }
+        if (webkit || ie && ie_version == 9)
+          { setTimeout(function () {display.wrapper.ownerDocument.body.focus(); display.input.focus();}, 20); }
         else
           { display.input.focus(); }
       }
@@ -8167,7 +8147,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
       mY = e.touches[0].clientY;
     } else {
       try { mX = e.clientX; mY = e.clientY; }
-      catch(e$1) { return false }
+      catch(e) { return false }
     }
     if (mX >= Math.floor(cm.display.gutters.getBoundingClientRect().right)) { return false }
     if (prevent) { e_preventDefault(e); }
@@ -8267,7 +8247,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
       for (var i = newBreaks.length - 1; i >= 0; i--)
         { replaceRange(cm.doc, val, newBreaks[i], Pos(newBreaks[i].line, newBreaks[i].ch + val.length)); }
     });
-    option("specialChars", /[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u200b-\u200c\u200e\u200f\u2028\u2029\ufeff\ufff9-\ufffc]/g, function (cm, val, old) {
+    option("specialChars", /[\u0000-\u001f\u007f-\u009f\u00ad\u061c\u200b-\u200f\u2028\u2029\ufeff\ufff9-\ufffc]/g, function (cm, val, old) {
       cm.state.specialChars = new RegExp(val.source + (val.test("\t") ? "" : "|\t"), "g");
       if (old != Init) { cm.refresh(); }
     });
@@ -8331,12 +8311,6 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
       }
       cm.display.input.readOnlyChanged(val);
     });
-
-    option("screenReaderLabel", null, function (cm, val) {
-      val = (val === '') ? null : val;
-      cm.display.input.screenReaderLabelChanged(val);
-    });
-
     option("disableInput", false, function (cm, val) {if (!val) { cm.display.input.reset(); }}, true);
     option("dragDrop", true, dragDropChanged);
     option("allowDropFileTypes", null);
@@ -8447,9 +8421,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
     attachDoc(this, doc);
 
     if ((options.autofocus && !mobile) || this.hasFocus())
-      { setTimeout(function () {
-        if (this$1.hasFocus() && !this$1.state.focused) { onFocus(this$1); }
-      }, 20); }
+      { setTimeout(bind(onFocus, this), 20); }
     else
       { onBlur(this); }
 
@@ -8689,7 +8661,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
           { from = Pos(from.line, from.ch - deleted); }
         else if (cm.state.overwrite && !paste) // Handle overwrite
           { to = Pos(to.line, Math.min(getLine(doc, to.line).text.length, to.ch + lst(textLines).length)); }
-        else if (paste && lastCopied && lastCopied.lineWise && lastCopied.text.join("\n") == textLines.join("\n"))
+        else if (paste && lastCopied && lastCopied.lineWise && lastCopied.text.join("\n") == inserted)
           { from = to = Pos(from.line, 0); }
       }
       var changeEvent = {from: from, to: to, text: multiPaste ? multiPaste[i$1 % multiPaste.length] : textLines,
@@ -9170,7 +9142,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
         clearCaches(this);
         scrollToCoords(this, this.doc.scrollLeft, this.doc.scrollTop);
         updateGutterSpace(this.display);
-        if (oldHeight == null || Math.abs(oldHeight - textHeight(this.display)) > .5 || this.options.lineWrapping)
+        if (oldHeight == null || Math.abs(oldHeight - textHeight(this.display)) > .5)
           { estimateLineHeights(this); }
         signal(this, "refresh", this);
       }),
@@ -9212,14 +9184,14 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
   }
 
   // Used for horizontal relative motion. Dir is -1 or 1 (left or
-  // right), unit can be "codepoint", "char", "column" (like char, but
-  // doesn't cross line boundaries), "word" (across next word), or
-  // "group" (to the start of next group of word or
-  // non-word-non-whitespace chars). The visually param controls
-  // whether, in right-to-left text, direction 1 means to move towards
-  // the next index in the string, or towards the character to the right
-  // of the current position. The resulting position will have a
-  // hitSide=true property if it reached the end of the document.
+  // right), unit can be "char", "column" (like char, but doesn't
+  // cross line boundaries), "word" (across next word), or "group" (to
+  // the start of next group of word or non-word-non-whitespace
+  // chars). The visually param controls whether, in right-to-left
+  // text, direction 1 means to move towards the next index in the
+  // string, or towards the character to the right of the current
+  // position. The resulting position will have a hitSide=true
+  // property if it reached the end of the document.
   function findPosH(doc, pos, dir, unit, visually) {
     var oldPos = pos;
     var origDir = dir;
@@ -9233,12 +9205,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
     }
     function moveOnce(boundToLine) {
       var next;
-      if (unit == "codepoint") {
-        var ch = lineObj.text.charCodeAt(pos.ch + (unit > 0 ? 0 : -1));
-        if (isNaN(ch)) { next = null; }
-        else { next = new Pos(pos.line, Math.max(0, Math.min(lineObj.text.length, pos.ch + dir * (ch >= 0xD800 && ch < 0xDC00 ? 2 : 1))),
-                            -dir); }
-      } else if (visually) {
+      if (visually) {
         next = moveVisually(doc.cm, lineObj, pos, dir);
       } else {
         next = moveLogically(lineObj, pos, dir);
@@ -9254,7 +9221,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
       return true
     }
 
-    if (unit == "char" || unit == "codepoint") {
+    if (unit == "char") {
       moveOnce();
     } else if (unit == "column") {
       moveOnce(true);
@@ -9324,16 +9291,8 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
     var div = input.div = display.lineDiv;
     disableBrowserMagic(div, cm.options.spellcheck, cm.options.autocorrect, cm.options.autocapitalize);
 
-    function belongsToInput(e) {
-      for (var t = e.target; t; t = t.parentNode) {
-        if (t == div) { return true }
-        if (/\bCodeMirror-(?:line)?widget\b/.test(t.className)) { break }
-      }
-      return false
-    }
-
     on(div, "paste", function (e) {
-      if (!belongsToInput(e) || signalDOMEvent(cm, e) || handlePaste(e, cm)) { return }
+      if (signalDOMEvent(cm, e) || handlePaste(e, cm)) { return }
       // IE doesn't fire input events, so we schedule a read for the pasted content in this way
       if (ie_version <= 11) { setTimeout(operation(cm, function () { return this$1.updateFromDOM(); }), 20); }
     });
@@ -9358,7 +9317,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
     });
 
     function onCopyCut(e) {
-      if (!belongsToInput(e) || signalDOMEvent(cm, e)) { return }
+      if (signalDOMEvent(cm, e)) { return }
       if (cm.somethingSelected()) {
         setLastCopied({lineWise: false, text: cm.getSelections()});
         if (e.type == "cut") { cm.replaceSelection("", null, "cut"); }
@@ -9398,15 +9357,6 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
     }
     on(div, "copy", onCopyCut);
     on(div, "cut", onCopyCut);
-  };
-
-  ContentEditableInput.prototype.screenReaderLabelChanged = function (label) {
-    // Label for screenreaders, accessibility
-    if(label) {
-      this.div.setAttribute('aria-label', label);
-    } else {
-      this.div.removeAttribute('aria-label');
-    }
   };
 
   ContentEditableInput.prototype.prepareSelection = function () {
@@ -9949,15 +9899,6 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
     this.textarea = this.wrapper.firstChild;
   };
 
-  TextareaInput.prototype.screenReaderLabelChanged = function (label) {
-    // Label for screenreaders, accessibility
-    if(label) {
-      this.textarea.setAttribute('aria-label', label);
-    } else {
-      this.textarea.removeAttribute('aria-label');
-    }
-  };
-
   TextareaInput.prototype.prepareSelection = function () {
     // Redraw the selection and/or cursor
     var cm = this.cm, display = cm.display, doc = cm.doc;
@@ -10198,7 +10139,6 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
   TextareaInput.prototype.readOnlyChanged = function (val) {
     if (!val) { this.reset(); }
     this.textarea.disabled = val == "nocursor";
-    this.textarea.readOnly = !!val;
   };
 
   TextareaInput.prototype.setUneditable = function () {};
@@ -10349,7 +10289,7 @@ CodeMirror.overlayMode = function(base, overlay, combine) {
 
   addLegacyProps(CodeMirror);
 
-  CodeMirror.version = "5.58.2";
+  CodeMirror.version = "5.52.2";
 
   return CodeMirror;
 
@@ -10537,9 +10477,6 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
   if (modeCfg.fencedCodeBlockHighlighting === undefined)
     modeCfg.fencedCodeBlockHighlighting = true;
 
-  if (modeCfg.fencedCodeBlockDefaultMode === undefined)
-    modeCfg.fencedCodeBlockDefaultMode = 'text/plain';
-
   if (modeCfg.xml === undefined)
     modeCfg.xml = true;
 
@@ -10581,7 +10518,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
   ,   atxHeaderRE = modeCfg.allowAtxHeaderWithoutSpace ? /^(#+)/ : /^(#+)(?: |$)/
   ,   setextHeaderRE = /^ {0,3}(?:\={1,}|-{2,})\s*$/
   ,   textRE = /^[^#!\[\]*_\\<>` "'(~:]+/
-  ,   fencedCodeRE = /^(~~~+|```+)[ \t]*([\w\/+#-]*)[^\n`]*$/
+  ,   fencedCodeRE = /^(~~~+|```+)[ \t]*([\w+#-]*)[^\n`]*$/
   ,   linkDefRE = /^\s*\[[^\]]+?\]:.*$/ // naive link-definition
   ,   punctuation = /[!"#$%&'()*+,\-.\/:;<=>?@\[\\\]^_`{|}~\xA1\xA7\xAB\xB6\xB7\xBB\xBF\u037E\u0387\u055A-\u055F\u0589\u058A\u05BE\u05C0\u05C3\u05C6\u05F3\u05F4\u0609\u060A\u060C\u060D\u061B\u061E\u061F\u066A-\u066D\u06D4\u0700-\u070D\u07F7-\u07F9\u0830-\u083E\u085E\u0964\u0965\u0970\u0AF0\u0DF4\u0E4F\u0E5A\u0E5B\u0F04-\u0F12\u0F14\u0F3A-\u0F3D\u0F85\u0FD0-\u0FD4\u0FD9\u0FDA\u104A-\u104F\u10FB\u1360-\u1368\u1400\u166D\u166E\u169B\u169C\u16EB-\u16ED\u1735\u1736\u17D4-\u17D6\u17D8-\u17DA\u1800-\u180A\u1944\u1945\u1A1E\u1A1F\u1AA0-\u1AA6\u1AA8-\u1AAD\u1B5A-\u1B60\u1BFC-\u1BFF\u1C3B-\u1C3F\u1C7E\u1C7F\u1CC0-\u1CC7\u1CD3\u2010-\u2027\u2030-\u2043\u2045-\u2051\u2053-\u205E\u207D\u207E\u208D\u208E\u2308-\u230B\u2329\u232A\u2768-\u2775\u27C5\u27C6\u27E6-\u27EF\u2983-\u2998\u29D8-\u29DB\u29FC\u29FD\u2CF9-\u2CFC\u2CFE\u2CFF\u2D70\u2E00-\u2E2E\u2E30-\u2E42\u3001-\u3003\u3008-\u3011\u3014-\u301F\u3030\u303D\u30A0\u30FB\uA4FE\uA4FF\uA60D-\uA60F\uA673\uA67E\uA6F2-\uA6F7\uA874-\uA877\uA8CE\uA8CF\uA8F8-\uA8FA\uA8FC\uA92E\uA92F\uA95F\uA9C1-\uA9CD\uA9DE\uA9DF\uAA5C-\uAA5F\uAADE\uAADF\uAAF0\uAAF1\uABEB\uFD3E\uFD3F\uFE10-\uFE19\uFE30-\uFE52\uFE54-\uFE61\uFE63\uFE68\uFE6A\uFE6B\uFF01-\uFF03\uFF05-\uFF0A\uFF0C-\uFF0F\uFF1A\uFF1B\uFF1F\uFF20\uFF3B-\uFF3D\uFF3F\uFF5B\uFF5D\uFF5F-\uFF65]|\uD800[\uDD00-\uDD02\uDF9F\uDFD0]|\uD801\uDD6F|\uD802[\uDC57\uDD1F\uDD3F\uDE50-\uDE58\uDE7F\uDEF0-\uDEF6\uDF39-\uDF3F\uDF99-\uDF9C]|\uD804[\uDC47-\uDC4D\uDCBB\uDCBC\uDCBE-\uDCC1\uDD40-\uDD43\uDD74\uDD75\uDDC5-\uDDC9\uDDCD\uDDDB\uDDDD-\uDDDF\uDE38-\uDE3D\uDEA9]|\uD805[\uDCC6\uDDC1-\uDDD7\uDE41-\uDE43\uDF3C-\uDF3E]|\uD809[\uDC70-\uDC74]|\uD81A[\uDE6E\uDE6F\uDEF5\uDF37-\uDF3B\uDF44]|\uD82F\uDC9F|\uD836[\uDE87-\uDE8B]/
   ,   expandedTab = "    " // CommonMark specifies tab as 4 spaces
@@ -10728,7 +10665,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
       state.quote = 0;
       state.fencedEndRE = new RegExp(match[1] + "+ *$");
       // try switching mode
-      state.localMode = modeCfg.fencedCodeBlockHighlighting && getMode(match[2] || modeCfg.fencedCodeBlockDefaultMode );
+      state.localMode = modeCfg.fencedCodeBlockHighlighting && getMode(match[2]);
       if (state.localMode) state.localState = CodeMirror.startState(state.localMode);
       state.f = state.block = local;
       if (modeCfg.highlightFormatting) state.formatting = "code-block";
@@ -11401,7 +11338,7 @@ CodeMirror.defineMIME("text/x-markdown", "markdown");
     {name: "Clojure", mime: "text/x-clojure", mode: "clojure", ext: ["clj", "cljc", "cljx"]},
     {name: "ClojureScript", mime: "text/x-clojurescript", mode: "clojure", ext: ["cljs"]},
     {name: "Closure Stylesheets (GSS)", mime: "text/x-gss", mode: "css", ext: ["gss"]},
-    {name: "CMake", mime: "text/x-cmake", mode: "cmake", ext: ["cmake", "cmake.in"], file: /^CMakeLists\.txt$/},
+    {name: "CMake", mime: "text/x-cmake", mode: "cmake", ext: ["cmake", "cmake.in"], file: /^CMakeLists.txt$/},
     {name: "CoffeeScript", mimes: ["application/vnd.coffeescript", "text/coffeescript", "text/x-coffeescript"], mode: "coffeescript", ext: ["coffee"], alias: ["coffee", "coffee-script"]},
     {name: "Common Lisp", mime: "text/x-common-lisp", mode: "commonlisp", ext: ["cl", "lisp", "el"], alias: ["lisp"]},
     {name: "Cypher", mime: "application/x-cypher-query", mode: "cypher", ext: ["cyp", "cypher"]},
@@ -11432,7 +11369,7 @@ CodeMirror.defineMIME("text/x-markdown", "markdown");
     {name: "F#", mime: "text/x-fsharp", mode: "mllike", ext: ["fs"], alias: ["fsharp"]},
     {name: "Gas", mime: "text/x-gas", mode: "gas", ext: ["s"]},
     {name: "Gherkin", mime: "text/x-feature", mode: "gherkin", ext: ["feature"]},
-    {name: "GitHub Flavored Markdown", mime: "text/x-gfm", mode: "gfm", file: /^(readme|contributing|history)\.md$/i},
+    {name: "GitHub Flavored Markdown", mime: "text/x-gfm", mode: "gfm", file: /^(readme|contributing|history).md$/i},
     {name: "Go", mime: "text/x-go", mode: "go", ext: ["go"]},
     {name: "Groovy", mime: "text/x-groovy", mode: "groovy", ext: ["groovy", "gradle"], file: /^Jenkinsfile$/},
     {name: "HAML", mime: "text/x-haml", mode: "haml", ext: ["haml"]},
@@ -11521,7 +11458,7 @@ CodeMirror.defineMIME("text/x-markdown", "markdown");
     {name: "SystemVerilog", mime: "text/x-systemverilog", mode: "verilog", ext: ["v", "sv", "svh"]},
     {name: "Tcl", mime: "text/x-tcl", mode: "tcl", ext: ["tcl"]},
     {name: "Textile", mime: "text/x-textile", mode: "textile", ext: ["textile"]},
-    {name: "TiddlyWiki", mime: "text/x-tiddlywiki", mode: "tiddlywiki"},
+    {name: "TiddlyWiki ", mime: "text/x-tiddlywiki", mode: "tiddlywiki"},
     {name: "Tiki wiki", mime: "text/tiki", mode: "tiki"},
     {name: "TOML", mime: "text/x-toml", mode: "toml", ext: ["toml"]},
     {name: "Tornado", mime: "text/x-tornado", mode: "tornado"},
@@ -11546,8 +11483,7 @@ CodeMirror.defineMIME("text/x-markdown", "markdown");
     {name: "Z80", mime: "text/x-z80", mode: "z80", ext: ["z80"]},
     {name: "mscgen", mime: "text/x-mscgen", mode: "mscgen", ext: ["mscgen", "mscin", "msc"]},
     {name: "xu", mime: "text/x-xu", mode: "mscgen", ext: ["xu"]},
-    {name: "msgenny", mime: "text/x-msgenny", mode: "mscgen", ext: ["msgenny"]},
-    {name: "WebAssembly", mime: "text/webassembly", mode: "wast", ext: ["wat", "wast"]},
+    {name: "msgenny", mime: "text/x-msgenny", mode: "mscgen", ext: ["msgenny"]}
   ];
   // Ensure all modes have a mime property for backwards compatibility
   for (var i = 0; i < CodeMirror.modeInfo.length; i++) {
